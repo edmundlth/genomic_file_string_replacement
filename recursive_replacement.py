@@ -1,5 +1,7 @@
 import argparse
 import os
+import shlex
+import subprocess
 from .file_replace_string import (
     replace_string_in_file,
     replace_string_in_bam,
@@ -13,6 +15,7 @@ def main():
     sourcedir = args.sourcedir
     outdir = args.outdir
     replacement_file = args.replacement_file
+    ignore_ext = args.ignore_extension
 
     replacement_dict = read_string_replacement_file(replacement_file)
     if not os.path.isdir(outdir):
@@ -25,19 +28,17 @@ def main():
             os.mkdir(new_outdir)
         for filename in files:
             print(f"Processing {filename}")
-            outfilename = replace_string(filename)
+            outfilename = replace_string(filename, replacement_dict)
             infilepath = os.path.join(root, filename)
             outfilepath = os.path.join(new_outdir, outfilename)
             if filename.endswith(".bam"):
                 replace_string_in_bam(infilepath, outfilepath, replacement_dict)
-            elif any([filename.endswith(ending) for ending in IGNORE]):
-                continue
-            elif any([filename.endswith(ending) for ending in IGNORE_CONTENT]):
+            elif any([filename.endswith(ending) for ending in ignore_ext]):
                 cmd = f"cp {infilepath} {outfilepath}"
                 return_code = subprocess.call(shlex.split(cmd))
                 print(f"Return code for `{cmd}` is {return_code}.")
             else:
-                replace_string_in_file(infilepath, outfilepath)
+                replace_string_in_file(infilepath, outfilepath, replacement_dict)
     return None
 
 
