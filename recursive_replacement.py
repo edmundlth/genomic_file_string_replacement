@@ -2,7 +2,7 @@ import argparse
 import os
 import shlex
 import subprocess
-from .file_replace_string import (
+from file_replace_string import (
     replace_string_in_file,
     replace_string_in_bam,
     replace_string,
