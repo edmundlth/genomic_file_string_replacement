@@ -14,11 +14,19 @@ def main():
     args = parse_args()
     infilepath = args.infilepath
     outfilepath = args.outfilepath
+    old_string = args.old_string
+    new_string = args.new_string
     replacement_file = args.replacement_file
 
-    replacement_dict = read_string_replacement_file(replacement_file, sep='\t')
-    if ".bam" in os.path.basename(infilepath):
-        replace_string_in_bam(infilepath, outfilepath, replacement_dict)
+    if replacement_file is not None:
+        assert old_string is None
+        assert new_string is None
+        replacement_dict = read_string_replacement_file(replacement_file, sep='\t')
+    else:
+        replacement_dict = {old_string: new_string}
+
+    if os.path.basename(infilepath).endswith(".bam"):
+        replace_string_in_bam(infilepath, outfilepath, replacement_dict, num_thread=args.num_thread)
     else:
         replace_string_in_file(infilepath, outfilepath, replacement_dict)
     return
@@ -32,9 +40,16 @@ def parse_args():
                         help='Path to input file.')
     parser.add_argument('--outfilepath', metavar="PATH", type=str, required=True,
                         help='Path to output file. Existing file will be overwritten.')
-    parser.add_argument('--replacement_file', metavar="PATH", type=str, required=True,
+    parser.add_argument('--old_string', metavar="STRING", type=str, required=False,
+                        help="The old string to be replaced by value of --new_string.")
+    parser.add_argument('--new_string', metavar="STRING", type=str, required=False,
+                        help="The new string to replace value of --old_string.")
+    parser.add_argument('--replacement_file', metavar="PATH", type=str, required=False,
                         help="Path to a 2 column TSV-file containing the original string in the first column "
-                             "and their corresponding replacement string in the second column.")
+                             "and their corresponding replacement string in the second column. "
+                             "Only specify this if --old_string and --new_strings are not specified.")
+    parser.add_argument('--num_thread', type=int, required=False, default=4,
+                        help="Number of thread to use in samtools.")
     return parser.parse_args()
 
 
@@ -65,7 +80,7 @@ def replace_string_in_file(infilename, outfilename, replacement_dict):
     return
 
 
-def replace_string_in_bam(inbam_name, outbam_name, replacement_dict):
+def replace_string_in_bam(inbam_name, outbam_name, replacement_dict, num_thread=4):
     """
     Same as `replace_string_in_file` function except we needed samtools to do the (de)compression.
 
@@ -78,10 +93,18 @@ def replace_string_in_bam(inbam_name, outbam_name, replacement_dict):
     :param replacement_dict: dict
     String mapping
 
+    :param num_thread
+    Number of threads
+
     :return: None
     """
     sed_cmd_string = ' | '.join([f"sed 's/{key}/{val}/g'" for key, val in replacement_dict.items()])
-    cmd = f"samtools view -h -@ 4 {inbam_name} | {sed_cmd_string} | samtools view -b -h -@ 4 > {outbam_name}"
+    cmd = f"samtools view -h -@ {num_thread} {inbam_name} " \
+          f"| {sed_cmd_string} " \
+          f"| samtools view -b -h -@ {num_thread} " \
+          f"> {outbam_name}"
+    if os.path.exists(outbam_name):
+        warnings.warn("Overwriting the existing file: %s" % outbam_name)
     process = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE)
     stdout, stderr = process.communicate()
     print(f"STDOUT: {stdout}")
