@@ -5,8 +5,9 @@ import time
 
 import numpy as np
 
-from constants import WAITING, RUNNING, COMPLETE
-
+COMPLETE = 1
+WAITING = -1
+RUNNING = 0
 
 ########################################################################################################
 # Multi-process handling
