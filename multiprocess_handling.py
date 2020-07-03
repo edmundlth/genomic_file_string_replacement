@@ -9,14 +9,15 @@ COMPLETE = 1
 WAITING = -1
 RUNNING = 0
 
+
 ########################################################################################################
 # Multi-process handling
 ########################################################################################################
 
 
-def cmd_runner(cmd, stdin=None, stdout=None):
+def cmd_runner(cmd, stdin=None, stdout=None, shell=False):
     args = shlex.split(cmd)
-    return subprocess.Popen(args, stdin=stdin, stdout=stdout)
+    return subprocess.Popen(args, stdin=stdin, stdout=stdout, shell=shell)
 
 
 def dumb_scheduler(param_list, max_process_num=10, polling_period=0.5):
@@ -43,10 +44,10 @@ def dumb_scheduler(param_list, max_process_num=10, polling_period=0.5):
                     if return_code != 0:
                         logging.warning(f"WARNING: Command ```{cmd}``` return with nonzero return code: {return_code}.")
                     job_states[job_index] = COMPLETE
-                    logging.info(f"\nCommand ```{cmd}``` completed with return code {return_code}."
-                                 f"\nNumber of remaining jobs : {np.sum(job_states != COMPLETE)}"
-                                 f"\nNumber of completed jobs : {np.sum(job_states == COMPLETE)}"
-                                 f"\nNumber of running jobs   : {np.sum(job_states == RUNNING)}")
+                    logging.info(f"\nCommand ```{cmd}``` completed with return code {return_code}.")
+                    logging.debug(f"\nNumber of remaining jobs : {np.sum(job_states != COMPLETE)}"
+                                  f"\nNumber of completed jobs : {np.sum(job_states == COMPLETE)}"
+                                  f"\nNumber of running jobs   : {np.sum(job_states == RUNNING)}")
         time.sleep(polling_period)
     for cmd, stdin, stdout in param_list:
         if stdin is not None:
