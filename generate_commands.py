@@ -146,5 +146,5 @@ def textfile_cmd(infilepath, outfilepath, replacement_dict, is_gzip=False):
     if is_gzip:
         cmd = f"gzip -cd {infilepath} | {sed_cmd_string} | gzip -c > {outfilepath}"
     else:
-        cmd = f"{sed_cmd_string} > {outfilepath}"
+        cmd = f"{sed_cmd_string} {infilepath} > {outfilepath}"
     return cmd
