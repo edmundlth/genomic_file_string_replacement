@@ -180,27 +180,31 @@ def output_command(args):
             for pair in row["replacements"].split(','):
                 key, val = pair.split(':')
                 string_map[key] = val
+        cmd = ""
+        batch_dir = os.path.join(outdirpath, batch)
+        if not os.path.isdir(batch_dir):  # if the directory doesn't exist, tag on the mkdir command.
+            cmd += f"mkdir -p {batch_dir}; "
 
         if filetype == "fastq":
             outfilename = generate_new_filename(filename, replacement_dict=string_map, remove_fields=range(1, 4))
-            outfilepath = os.path.join(outdirpath, batch, outfilename)
-            cmd = fastq_cmd(infilepath, outfilepath, use_symlink=use_symlink)
+            outfilepath = os.path.join(batch_dir, outfilename)
+            cmd += fastq_cmd(infilepath, outfilepath, use_symlink=use_symlink)
         elif filetype == "bam":
             outfilename = generate_new_filename(filename, replacement_dict=string_map)
-            outfilepath = os.path.join(outdirpath, outfilename)
-            cmd = bam_cmd(infilepath, outfilepath, string_map, num_thread=1)
+            outfilepath = os.path.join(batch_dir, outfilename)
+            cmd += bam_cmd(infilepath, outfilepath, string_map, num_thread=1)
         elif filetype == "vcf":
             outfilename = generate_new_filename(filename, replacement_dict=string_map)
-            outfilepath = os.path.join(outdirpath, outfilename)
-            cmd = textfile_cmd(infilepath, outfilepath, string_map, is_gzip=infilepath.endswith(".gz"))
+            outfilepath = os.path.join(batch_dir, outfilename)
+            cmd += textfile_cmd(infilepath, outfilepath, string_map, is_gzip=infilepath.endswith(".gz"))
         else:
             outfilename = generate_new_filename(filename, replacement_dict=string_map)
-            outfilepath = os.path.join(outdirpath, outfilename)
-            cmd = textfile_cmd(infilepath, outfilepath, string_map, is_gzip=infilepath.endswith(".gz"))
+            outfilepath = os.path.join(batch_dir, outfilename)
+            cmd += textfile_cmd(infilepath, outfilepath, string_map, is_gzip=infilepath.endswith(".gz"))
 
         # if specified, tag on `md5sum` command to the output file.
         if args.generate_md5 and filetype != "fastq":
-            cmd += f" ; md5sum {outfilepath} > {outfilepath}.md5"
+            cmd += f" ; md5sum {outfilepath} > {outfilepath.strip()}.md5"
         cmd_list.append(cmd)
 
     with open(args.outfilepath, 'w') as outfile:
