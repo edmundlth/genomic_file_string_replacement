@@ -159,7 +159,7 @@ def output_command(args):
     """
     use_symlink = args.use_symlink
     anon_batch = args.anon_batch
-    df_fileinfo = pd.read_csv(args.fileinfo, sep='\t')
+    df_fileinfo = pd.read_csv(args.fileinfo, sep='\t', dtype=str)
     outdirpath = os.path.abspath(args.outdir)
     replacement_dict = {
         s: rand_string(n=args.anon_strlength) for s in set(df_fileinfo["sample_id"])
