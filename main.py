@@ -171,6 +171,7 @@ def output_command(args):
         filetype = row["filetype"]
         batch = row["batch"]
         sample_id = row["sample_id"]
+        flagship = row['flagship']
         if anon_batch:
             batch = batch_mapping[(sample_id, batch)]
         infilepath = row["filepath"]  # os.path.join(datadir, batch, filename)
@@ -181,7 +182,7 @@ def output_command(args):
                 key, val = pair.split(':')
                 string_map[key] = val
         cmd = ""
-        batch_dir = os.path.join(outdirpath, batch)
+        batch_dir = os.path.join(outdirpath, flagship, batch)
         if not os.path.isdir(batch_dir):  # if the directory doesn't exist, tag on the mkdir command.
             cmd += f"mkdir -p {batch_dir}; "
 
