@@ -5,14 +5,19 @@ import subprocess
 from file_replace_string import (
     read_string_replacement_file
 )
-from recursive_replacement import generate_commands
+from generate_commands import (
+    generate_commands,
+    rand_string,
+    generate_new_filename,
+    fastq_cmd,
+    bam_cmd,
+    textfile_cmd
+)
 from multiprocess_handling import dumb_scheduler, cmd_runner
 import logging
 import sys
-import datetime
 import pandas as pd
 from multiprocessing import Pool
-from generate_commands import *
 
 ######
 # CLI
