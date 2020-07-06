@@ -135,7 +135,7 @@ def bam_cmd(inbam_path, outbam_path, replacement_dict, num_thread=4, remove_pg=T
     """
     sed_cmd_string = get_sed_cmd_string(replacement_dict)
     if remove_pg:  # if @PG tags should be removed from BAM header
-        cmd = f"samtools view -H {inbam_path} | grep -v grep -v '^@PG' > {outbam_path}; "
+        cmd = f"samtools view -H {inbam_path} | grep -v '^@PG' > {outbam_path}; "
     else:  # if not, just copy the header across
         cmd = f"samtools view -H {inbam_path} > {outbam_path}; "
     cmd += f"samtools view -h -@ {num_thread} {inbam_path} " \
