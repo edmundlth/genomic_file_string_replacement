@@ -77,6 +77,10 @@ OUTPUT_COMMAND_ARGS = [
              help='An output directory to be used in the list of generated commands. '),
     argument('--outfilepath', metavar="PATH", type=str, required=True,
              help='Path to output file where generated commands end up.'),
+    argument('--generate_md5', action="store_true",
+             help="If specified, file with content changed will get their md5 generated."),
+    argument('--anon_batch', action="store_true",
+             help="If specified, the directory name of the batch will be anonymised."),
     argument('--use_symlink', action="store_true",
              help="If specified, any file specified in --ignore_extension "
                   "will be symlinked instead of copied."),
@@ -151,10 +155,15 @@ def output_command(args):
     output a list of anonymisation commands for each of them.
     """
     use_symlink = args.use_symlink
+    anon_batch = args.anon_batch
     df_fileinfo = pd.read_csv(args.fileinfo, sep='\t')
     outdirpath = os.path.abspath(args.outdir)
     replacement_dict = {
         s: rand_string(n=args.anon_strlength) for s in set(df_fileinfo["sample_id"])
+    }
+    batch_mapping = {
+        (sample_id, batch): rand_string(n=args.anon_strlength)
+        for sample_id, batch in df_fileinfo[["sample_id", "batch"]].values
     }
 
     cmd_list = []
@@ -162,6 +171,8 @@ def output_command(args):
         filetype = row["filetype"]
         batch = row["batch"]
         sample_id = row["sample_id"]
+        if anon_batch:
+            batch = batch_mapping[(sample_id, batch)]
         infilepath = row["filepath"]  # os.path.join(datadir, batch, filename)
         directory, filename = os.path.split(infilepath)
         string_map = {sample_id: replacement_dict[sample_id]}  # definitely anonymise sample_id
@@ -186,7 +197,12 @@ def output_command(args):
             outfilename = generate_new_filename(filename, replacement_dict=string_map)
             outfilepath = os.path.join(outdirpath, outfilename)
             cmd = textfile_cmd(infilepath, outfilepath, string_map, is_gzip=infilepath.endswith(".gz"))
+
+        # if specified, tag on `md5sum` command to the output file.
+        if args.generate_md5 and filetype != "fastq":
+            cmd += f" ; md5sum {outfilepath}"
         cmd_list.append(cmd)
+
     with open(args.outfilepath, 'w') as outfile:
         for line in cmd_list:
             outfile.write(line + '\n')
