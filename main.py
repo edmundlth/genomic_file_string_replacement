@@ -167,8 +167,7 @@ def output_command(args):
         s: rand_string(n=args.anon_strlength) for s in set(df_fileinfo["sample_id"])
     }
     batch_mapping = {
-        (sample_id, batch): rand_string(n=args.anon_strlength)
-        for sample_id, batch in df_fileinfo[["sample_id", "batch"]].values
+        batch: rand_string(n=args.anon_strlength) for batch in set(df_fileinfo["batch"])
     }
 
     cmd_list = []
@@ -177,7 +176,7 @@ def output_command(args):
         batch = row["batch"]
         sample_id = row["sample_id"]
         if anon_batch:
-            batch = batch_mapping[(sample_id, batch)]
+            batch = batch_mapping[batch]
         infilepath = row["filepath"]
         directory, filename = os.path.split(infilepath)
 
