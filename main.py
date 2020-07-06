@@ -200,7 +200,7 @@ def output_command(args):
 
         # if specified, tag on `md5sum` command to the output file.
         if args.generate_md5 and filetype != "fastq":
-            cmd += f" ; md5sum {outfilepath}"
+            cmd += f" ; md5sum {outfilepath} > {outfilepath}.md5"
         cmd_list.append(cmd)
 
     with open(args.outfilepath, 'w') as outfile:
