@@ -81,6 +81,9 @@ OUTPUT_COMMAND_ARGS = [
              help="If specified, file with content changed will get their md5 generated."),
     argument('--anon_batch', action="store_true",
              help="If specified, the directory name of the batch will be anonymised."),
+    argument('--fastq_filename_fields', type=int, nargs="*", required=False,
+             help="A list of zero-based indices to "
+                  "specify which `_`-separated fields need to be randomised."),
     argument('--use_symlink', action="store_true",
              help="If specified, any file specified in --ignore_extension "
                   "will be symlinked instead of copied."),
@@ -171,23 +174,27 @@ def output_command(args):
         filetype = row["filetype"]
         batch = row["batch"]
         sample_id = row["sample_id"]
-        flagship = row['flagship']
         if anon_batch:
             batch = batch_mapping[(sample_id, batch)]
-        infilepath = row["filepath"]  # os.path.join(datadir, batch, filename)
+        infilepath = row["filepath"]
         directory, filename = os.path.split(infilepath)
+
         string_map = {sample_id: replacement_dict[sample_id]}  # definitely anonymise sample_id
         if "replacements" in row.keys():  # if there are other replacement to make. Can overwrite sample id replacement
             for pair in row["replacements"].split(','):
                 key, val = pair.split(':')
                 string_map[key] = val
         cmd = ""
-        batch_dir = os.path.join(outdirpath, flagship, batch)
+        batch_dir = os.path.join(outdirpath, batch)
         if not os.path.isdir(batch_dir):  # if the directory doesn't exist, tag on the mkdir command.
             cmd += f"mkdir -p {batch_dir}; "
 
         if filetype == "fastq":
-            outfilename = generate_new_filename(filename, replacement_dict=string_map, remove_fields=range(1, 4))
+            outfilename = generate_new_filename(
+                filename,
+                replacement_dict=string_map,
+                remove_fields=list(args.fastq_filename_fields)
+            )
             outfilepath = os.path.join(batch_dir, outfilename)
             cmd += fastq_cmd(infilepath, outfilepath, use_symlink=use_symlink)
         elif filetype == "bam":
