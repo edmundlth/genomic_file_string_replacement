@@ -84,6 +84,8 @@ OUTPUT_COMMAND_ARGS = [
     argument('--fastq_filename_fields', type=int, nargs="*", required=False,
              help="A list of zero-based indices to "
                   "specify which `_`-separated fields need to be randomised."),
+    argument('--remove_bam_pg', action="store_true",
+             help="If specified, the PG tag in a BAM file will be removed."),
     argument('--use_symlink', action="store_true",
              help="If specified, any file specified in --ignore_extension "
                   "will be symlinked instead of copied."),
@@ -200,7 +202,7 @@ def output_command(args):
         elif filetype == "bam":
             outfilename = generate_new_filename(filename, replacement_dict=string_map)
             outfilepath = os.path.join(batch_dir, outfilename)
-            cmd += bam_cmd(infilepath, outfilepath, string_map, num_thread=1)
+            cmd += bam_cmd(infilepath, outfilepath, string_map, num_thread=1, remove_pg=args.remove_bam_pg)
         elif filetype == "vcf":
             outfilename = generate_new_filename(filename, replacement_dict=string_map)
             outfilepath = os.path.join(batch_dir, outfilename)

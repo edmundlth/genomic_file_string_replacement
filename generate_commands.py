@@ -115,7 +115,7 @@ def fastq_cmd(infilepath, outfilepath, use_symlink=True):
     return cmd_string
 
 
-def bam_cmd(inbam_path, outbam_path, replacement_dict, num_thread=4):
+def bam_cmd(inbam_path, outbam_path, replacement_dict, num_thread=4, remove_pg=True):
     """
     Same as `replace_string_in_file` function except we needed samtools to do the (de)compression.
 
@@ -134,10 +134,14 @@ def bam_cmd(inbam_path, outbam_path, replacement_dict, num_thread=4):
     :return: None
     """
     sed_cmd_string = get_sed_cmd_string(replacement_dict)
-    cmd = f"samtools view -h -@ {num_thread} {inbam_path} " \
-          f"| {sed_cmd_string} " \
-          f"| samtools view -b -h -@ {num_thread} " \
-          f"> {outbam_path}"
+    if remove_pg:  # if @PG tags should be removed from BAM header
+        cmd = f"samtools view -H {inbam_path} | grep -v grep -v '^@PG' > {outbam_path}; "
+    else:  # if not, just copy the header across
+        cmd = f"samtools view -H {inbam_path} > {outbam_path}; "
+    cmd += f"samtools view -h -@ {num_thread} {inbam_path} " \
+           f"| {sed_cmd_string} " \
+           f"| samtools view -b -h -@ {num_thread} " \
+           f">> {outbam_path}"
     return cmd
 
 
