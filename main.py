@@ -68,9 +68,16 @@ OUTPUT_COMMAND_ARGS = [
     argument('--fileinfo', metavar="PATH", type=str, required=True,
              help='Path to tsv-file of table containing information needed to determine operation to perform on '
                   'each files.'),
+    argument('--outdir', metavar="PATH", type=str, required=True,
+             help='An output directory to be used in the list of generated commands. '),
+    argument('--outfilepath', metavar="PATH", type=str, required=True,
+             help='Path to output file where generated commands end up.'),
     argument('--use_symlink', action="store_true",
              help="If specified, any file specified in --ignore_extension "
                   "will be symlinked instead of copied."),
+    argument('--anon_strlength', metavar="LENGTH", type=int, required=False,
+             default=16,
+             help='Length of anonymised ID. Default: 16'),
 ]
 
 RUN_COMMAND_ARGS = [
@@ -95,7 +102,7 @@ RUN_COMMAND_ARGS = [
 @subcommand(PREPARE_ARGS)
 def prepare(args):
     """
-    TODO:
+    Parsing a data directory and output a tsv-file of file information in preparation for the `output_command` stage.
     """
     # Parse string replacement file into a dictionary.
     replacement_file = args.replacement_file
@@ -135,50 +142,56 @@ def prepare(args):
 @subcommand(OUTPUT_COMMAND_ARGS)
 def output_command(args):
     """
-    TODO:
+    Read in a tsv-file of file information including filepath, filetype, batch, sample_id,
+    output a list of anonymisation commands for each of them.
     """
     use_symlink = args.use_symlink
-    datadir = args.datadir
     df_fileinfo = pd.read_csv(args.fileinfo, sep='\t')
+    outdirpath = os.path.abspath(args.outdir)
+    replacement_dict = {
+        s: rand_string(n=args.anon_strlength) for s in set(df_fileinfo["sample_id"])
+    }
 
     cmd_list = []
     for i, row in df_fileinfo.iterrows():
-        filetype = row["file_type_group"]
+        filetype = row["filetype"]
         batch = row["batch"]
         sample_id = row["sample_id"]
-        filename = row["name"]
-        infilepath = os.path.join(datadir, batch, filename)
-
+        infilepath = row["filepath"]  # os.path.join(datadir, batch, filename)
         directory, filename = os.path.split(infilepath)
-        sample_id_map = {sample_id: replacement_dict[sample_id]}
-        for key, val in replacement_dict.items():
-            if key in infilepath:
-                sample_id_map[key] = val
+        string_map = {sample_id: replacement_dict[sample_id]}  # definitely anonymise sample_id
+        if "replacements" in row.keys():  # if there are other replacement to make. Can overwrite sample id replacement
+            for pair in row["replacements"].split(','):
+                key, val = pair.split(':')
+                string_map[key] = val
+
         if filetype == "fastq":
-            outfilename = generate_new_filename(filename, replacement_dict=sample_id_map, remove_fields=range(1, 4))
+            outfilename = generate_new_filename(filename, replacement_dict=string_map, remove_fields=range(1, 4))
             outfilepath = os.path.join(outdirpath, batch, outfilename)
             cmd = fastq_cmd(infilepath, outfilepath, use_symlink=use_symlink)
         elif filetype == "bam":
-            outfilename = generate_new_filename(filename, replacement_dict=sample_id_map)
+            outfilename = generate_new_filename(filename, replacement_dict=string_map)
             outfilepath = os.path.join(outdirpath, outfilename)
-            cmd = bam_cmd(infilepath, outfilepath, sample_id_map, num_thread=1)
+            cmd = bam_cmd(infilepath, outfilepath, string_map, num_thread=1)
         elif filetype == "vcf":
-            outfilename = generate_new_filename(filename, replacement_dict=sample_id_map)
+            outfilename = generate_new_filename(filename, replacement_dict=string_map)
             outfilepath = os.path.join(outdirpath, outfilename)
-            cmd = textfile_cmd(infilepath, outfilepath, sample_id_map, is_gzip=infilepath.endswith(".gz"))
+            cmd = textfile_cmd(infilepath, outfilepath, string_map, is_gzip=infilepath.endswith(".gz"))
         else:
-            outfilename = generate_new_filename(filename, replacement_dict=sample_id_map)
+            outfilename = generate_new_filename(filename, replacement_dict=string_map)
             outfilepath = os.path.join(outdirpath, outfilename)
-            cmd = textfile_cmd(infilepath, outfilepath, sample_id_map, is_gzip=infilepath.endswith(".gz"))
+            cmd = textfile_cmd(infilepath, outfilepath, string_map, is_gzip=infilepath.endswith(".gz"))
         cmd_list.append(cmd)
-
+    with open(args.outfilepath, 'w') as outfile:
+        for line in cmd_list:
+            outfile.write(line + '\n')
     return
 
 
 @subcommand(RUN_COMMAND_ARGS)
 def run_command(args):
     """
-    TODO:
+    Run a list of shell commands in multiprocessing mode.
     """
     cmd_params = []
     with open(args.commandfilepath) as infile:
