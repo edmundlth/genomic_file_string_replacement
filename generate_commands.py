@@ -112,6 +112,11 @@ def fastq_cmd(infilepath, outfilepath, use_symlink=True):
     else:
         cmd = "cp"
     cmd_string = f"{cmd} {infilepath} {outfilepath}"
+    # copy / symlink md5 file over if exist
+    md5path_old = f"{infilepath}.md5"
+    md5path_new = f"{outfilepath}.md5"
+    if os.path.isfile(md5path_old) or os.path.islink(md5path_old):
+        cmd_string += f" ; {cmd} {md5path_old} {md5path_new}"
     return cmd_string
 
 
