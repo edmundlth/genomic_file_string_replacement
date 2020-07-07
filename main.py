@@ -263,7 +263,7 @@ def run_command(args):
 
 
 def worker(param):
-    proc_rc = subprocess.call(param[0], shell=True)
+    proc_rc = subprocess.call(param[0], shell=True, executable='/bin/bash')
     if proc_rc != 0:
         logging.info(f"Command `{param[0]}` return with non-zero return code: {proc_rc}.")
     return param[0], proc_rc
