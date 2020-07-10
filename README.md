@@ -1,14 +1,5 @@
 # Genomic file string replacement
 A tool for search and replace strings or anonymise genomic files.  
-
-
-
-# Use cases 
-
-# Example
-```bash
-python main.py output_command --fileinfo ./REQID33/fileinfo.tsv --outdir ./test_outdir --outfilepath ./test_output.sh --use_symlink
-```
 # Subcommands
 ```bash
 $ python main.py prepare --help
@@ -46,11 +37,14 @@ optional arguments:
                         The set of file extension to ignore. Any files with
                         this extension in `sourcedir` will have their filename
                         changed but their content untouched.
-
-
+```
+```
 $ python main.py output_command --help
 usage: main.py output_command [-h] --fileinfo PATH --outdir PATH --outfilepath
-                              PATH [--use_symlink] [--anon_strlength LENGTH]
+                              PATH [--generate_md5] [--anon_batch]
+                              [--fastq_filename_fields [FASTQ_FILENAME_FIELDS [FASTQ_FILENAME_FIELDS ...]]]
+                              [--remove_bam_pg] [--use_symlink]
+                              [--anon_strlength LENGTH]
 
 Read in a tsv-file of file information including filepath, filetype, batch,
 sample_id, output a list of anonymisation commands for each of them.
@@ -63,12 +57,22 @@ optional arguments:
   --outdir PATH         An output directory to be used in the list of
                         generated commands.
   --outfilepath PATH    Path to output file where generated commands end up.
+  --generate_md5        If specified, file with content changed will get their
+                        md5 generated.
+  --anon_batch          If specified, the directory name of the batch will be
+                        anonymised.
+  --fastq_filename_fields [FASTQ_FILENAME_FIELDS [FASTQ_FILENAME_FIELDS ...]]
+                        A list of zero-based indices to specify which
+                        `_`-separated fields need to be randomised.
+  --remove_bam_pg       If specified, the PG tag in a BAM file will be
+                        removed.
   --use_symlink         If specified, any file specified in --ignore_extension
                         will be symlinked instead of copied.
   --anon_strlength LENGTH
                         Length of anonymised ID. Default: 16
+```
 
-
+```
 $ python main.py run_command --help
 usage: main.py run_command [-h] --commandfilepath PATH
                            [--multiprocessing THREADS]
@@ -90,3 +94,34 @@ optional arguments:
   --logfile PATH        A file to store log outputs.
 
 ``` 
+# Example
+
+```bash
+ python main.py output_command \
+    --fileinfo /path/to/fileinfo.tsv \
+    --outdir /path/to/output/dir \
+    --outfilepath /path/to/output_cmd.sh \
+    --use_symlink \
+    --generate_md5 \
+    --anon_batch \
+    --remove_bam_pg \
+    --fastq_filename_fields 1 2
+```
+The command above takes in a tsv file `/path/to/fileinfo.tsv` with sample entries
+
+| sample_id | filetype | filepath | batch |
+|-----------|----------|----------|-------|
+| sampleX | fastq  | /path/to/sampleX_Sensitive1_Sensitive2_L005_R1.fastq.gz | batch001 |
+| sampleX | vcf  | /path/to/sampleX.vcf | batch001 |
+| sampleX | bam  | /path/to/sampleX.bam | batch001 |
+
+and output a list of commands to perform on each file base on the information provide. 
+
+Then we run the list of command in parallel:
+```bash
+python main.py run_command \
+  --commandfilepath /path/to/output_cmd.sh \
+  --multiprocessing 12 \
+  --logfile run_command.log
+```
+
